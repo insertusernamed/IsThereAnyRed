@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { detectRed } from "./utils/redDetection";
+import { Link } from "react-router-dom";
 import "./App.css";
 
 function App() {
@@ -82,7 +83,12 @@ function App() {
     return (
         <div className={`container ${isLoaded ? "visible" : ""}`}>
             <div className="content-wrapper">
-                <h1 className="title-animation">Is There Any Red?</h1>
+                <h1 className="title-animation">
+                    Is There Any Red?
+                    <Link to="/about" className="about-button">
+                        ?
+                    </Link>
+                </h1>
                 <p className="subtitle subtitle-animation">
                     Upload an image or paste a URL to check if it contains red
                 </p>

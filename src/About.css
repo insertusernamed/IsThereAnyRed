@@ -1,0 +1,149 @@
+.about-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.87);
+}
+
+.about-content {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.back-button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    margin-bottom: 2rem;
+    color: #e63946;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background: rgba(230, 57, 70, 0.1);
+    transform: translateX(-4px);
+}
+
+.about-container h1 {
+    color: #e63946;
+    margin-bottom: 1.5rem;
+    font-size: 2.5rem;
+}
+
+.about-container h2 {
+    color: #fff;
+    margin: 2.5rem 0 1.5rem;
+    font-size: 1.8rem;
+}
+
+.intro {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: #ccc;
+    margin-bottom: 2rem;
+}
+
+.method-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.method-card:hover {
+    transform: translateY(-4px);
+}
+
+.method-card h3 {
+    color: #e63946;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+.method-card p {
+    color: #ccc;
+    line-height: 1.6;
+}
+
+.method-card a {
+    color: #e63946;
+    text-decoration: none;
+    border-bottom: 1px dashed currentColor;
+}
+
+.method-card a:hover {
+    opacity: 0.8;
+}
+
+.footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    color: #888;
+}
+
+.footer a {
+    color: #e63946;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+
+.origin-story {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem 0;
+}
+
+.source-image {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.source-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.image-caption {
+    margin-top: 1rem;
+    color: #888;
+    font-style: italic;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .about-container {
+        padding: 1rem;
+    }
+
+    .about-container h1 {
+        font-size: 2rem;
+    }
+
+    .about-container h2 {
+        font-size: 1.5rem;
+    }
+
+    .intro {
+        font-size: 1.1rem;
+    }
+}
