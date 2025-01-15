@@ -8,6 +8,9 @@ function App() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [results, setResults] = useState<any[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isMobile] = useState(() =>
+        /iPhone|iPad|Android/i.test(navigator.userAgent)
+    );
 
     const getCorsUrl = (url: string) => {
         if (url.startsWith("data:") || url.startsWith("blob:")) {
@@ -59,6 +62,15 @@ function App() {
         }
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && file.type.startsWith("image/")) {
+            const url = URL.createObjectURL(file);
+            setImageUrl(url);
+            analyzeImage(url);
+        }
+    };
+
     const handleUrlSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
@@ -75,7 +87,7 @@ function App() {
                     Upload an image or paste a URL to check if it contains red
                 </p>
 
-                <div
+                <label
                     className={`drop-zone ${
                         isDragging ? "dragging" : ""
                     } zone-animation`}
@@ -86,6 +98,13 @@ function App() {
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
                 >
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="file-input"
+                        capture={isMobile ? "environment" : undefined}
+                    />
                     <div className="drop-zone-content">
                         <svg
                             className="upload-icon"
@@ -101,9 +120,13 @@ function App() {
                             <polyline points="17 8 12 3 7 8" />
                             <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
-                        <p>Drag and drop your image here</p>
+                        <p>
+                            {isMobile
+                                ? "Tap to upload an image"
+                                : "Drag and drop your image here"}
+                        </p>
                     </div>
-                </div>
+                </label>
 
                 <div className="divider divider-animation">OR</div>
 
