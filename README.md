@@ -1,50 +1,27 @@
-# React + TypeScript + Vite
+# Is There Any Red?
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An advanced web application that analyzes images to detect the presence of red using multiple detection methods.
 
-Currently, two official plugins are available:
+## How It Works
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The application uses four different algorithms to analyze images:
 
-## Expanding the ESLint configuration
+1. **Simple RGB Check** - Compares red channel values against green and blue channels
+2. **HSL Analysis** - Detects red by analyzing hue values in the HSL color space
+3. **Dominant Color** - Determines if red is a dominant color in the image
+4. **Histogram Analysis** - Examines the distribution of color values with a visual graph
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+Each method provides its own confidence score, and a final verdict is calculated based on the combined results.
 
-- Configure the top-level `parserOptions` property like this:
+## Features
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+-   Drag & drop image upload
+-   Image URL support
+-   Real-time color histogram visualization
+-   Multiple CORS proxy fallbacks for URL access
+-   Detailed analysis breakdown with confidence scores
+-   Responsive design for all devices
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Technical Details
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+Built with React, TypeScript, and Chart.js. Uses HTML5 Canvas for image processing and color analysis. All processing is done client-side for privacy and performance.

@@ -29,13 +29,21 @@ const HistogramDisplay = ({
 }: {
     data: { red: number[]; green: number[]; blue: number[] };
 }) => {
-    const labels = Array.from({ length: 256 }, (_, i) => i);
+    const maxValue = Math.max(...data.red, ...data.green, ...data.blue);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    // Add resize listener
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const chartData = {
-        labels,
+        labels: Array.from({ length: 256 }, (_, i) => i),
         datasets: [
             {
-                label: "Red",
+                label: "Red Channel",
                 data: data.red,
                 borderColor: "rgba(255, 0, 0, 0.8)",
                 backgroundColor: "rgba(255, 0, 0, 0.2)",
@@ -43,7 +51,7 @@ const HistogramDisplay = ({
                 tension: 0.4,
             },
             {
-                label: "Green",
+                label: "Green Channel",
                 data: data.green,
                 borderColor: "rgba(0, 255, 0, 0.8)",
                 backgroundColor: "rgba(0, 255, 0, 0.2)",
@@ -51,7 +59,7 @@ const HistogramDisplay = ({
                 tension: 0.4,
             },
             {
-                label: "Blue",
+                label: "Blue Channel",
                 data: data.blue,
                 borderColor: "rgba(0, 0, 255, 0.8)",
                 backgroundColor: "rgba(0, 0, 255, 0.2)",
@@ -63,37 +71,93 @@ const HistogramDisplay = ({
 
     const options = {
         responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            intersect: false,
+            mode: "index" as const,
+        },
         scales: {
             y: {
                 beginAtZero: true,
+                title: {
+                    display: !isMobile,
+                    text: "Pixel Count",
+                    color: "#888",
+                },
                 grid: {
                     color: "rgba(255, 255, 255, 0.1)",
                 },
                 ticks: {
                     color: "#888",
+                    maxTicksLimit: isMobile ? 4 : 8,
+                    font: {
+                        size: isMobile ? 8 : 12,
+                    },
+                    callback: function (tickValue: string | number) {
+                        if (
+                            typeof tickValue === "number" &&
+                            tickValue >= 1000
+                        ) {
+                            return `${(tickValue / 1000).toFixed(1)}k`;
+                        }
+                        return tickValue;
+                    },
                 },
             },
             x: {
+                title: {
+                    display: !isMobile,
+                    text: "Color Intensity (0-255)",
+                    color: "#888",
+                },
                 grid: {
                     color: "rgba(255, 255, 255, 0.1)",
                 },
                 ticks: {
                     color: "#888",
-                    maxTicksLimit: 8,
+                    maxTicksLimit: isMobile ? 4 : 8,
+                    font: {
+                        size: isMobile ? 8 : 12,
+                    },
+                    callback: function (tickValue: string | number) {
+                        if (typeof tickValue === "number" && isMobile) {
+                            return tickValue === 0
+                                ? "Dark"
+                                : tickValue === 255
+                                ? "Light"
+                                : "";
+                        }
+                        return tickValue;
+                    },
                 },
             },
         },
         plugins: {
             legend: {
-                position: "top" as const,
+                position: isMobile ? ("bottom" as const) : ("top" as const),
                 labels: {
                     color: "#888",
+                    boxWidth: isMobile ? 10 : 40,
+                    padding: isMobile ? 8 : 20,
+                    font: {
+                        size: isMobile ? 10 : 12,
+                    },
                 },
             },
             title: {
-                display: true,
+                display: !isMobile,
                 text: "Color Distribution",
                 color: "#fff",
+                font: {
+                    size: isMobile ? 12 : 16,
+                },
+            },
+            tooltip: {
+                callbacks: {
+                    title: (items: any[]) => `Intensity: ${items[0].label}`,
+                    label: (item: any) =>
+                        `${item.dataset.label}: ${item.formattedValue} pixels`,
+                },
             },
         },
     };
@@ -341,7 +405,17 @@ function App() {
                                                 className="result-item final-verdict"
                                             >
                                                 <h3>{result.method}</h3>
+                                                <p className="verdict-answer">
+                                                    {result.hasRed
+                                                        ? "YES"
+                                                        : "NO"}
+                                                </p>
                                                 <p className="description">
+                                                    <strong>
+                                                        {result.hasRed
+                                                            ? "This image definitely contains red."
+                                                            : "This image definitely does not contain red."}
+                                                    </strong>{" "}
                                                     {result.description}
                                                 </p>
                                                 <div className="confidence-bar">
@@ -353,7 +427,7 @@ function App() {
                                                     />
                                                 </div>
                                                 <p className="confidence">
-                                                    Confidence:{" "}
+                                                    Certainty:{" "}
                                                     {result.confidence.toFixed(
                                                         1
                                                     )}
