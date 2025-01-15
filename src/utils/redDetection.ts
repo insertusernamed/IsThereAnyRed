@@ -164,7 +164,6 @@ const histogramAnalysis = async (imageUrl: string): Promise<DetectionResult> => 
             }
 
             // Calculate red dominance
-            const totalPixels = imageData.length / 4;
             const significantRed = histogram.red.slice(128).reduce((a, b) => a + b, 0);
             const significantGreen = histogram.green.slice(128).reduce((a, b) => a + b, 0);
             const significantBlue = histogram.blue.slice(128).reduce((a, b) => a + b, 0);

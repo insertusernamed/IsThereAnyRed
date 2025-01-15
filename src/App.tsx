@@ -29,7 +29,6 @@ const HistogramDisplay = ({
 }: {
     data: { red: number[]; green: number[]; blue: number[] };
 }) => {
-    const maxValue = Math.max(...data.red, ...data.green, ...data.blue);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
     // Add resize listener
