@@ -1,7 +1,109 @@
 import { useState, useEffect } from "react";
+import { Line } from "react-chartjs-2";
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from "chart.js";
 import { detectRed } from "./utils/redDetection";
 import { Link } from "react-router-dom";
 import "./App.css";
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+);
+
+const HistogramDisplay = ({
+    data,
+}: {
+    data: { red: number[]; green: number[]; blue: number[] };
+}) => {
+    const labels = Array.from({ length: 256 }, (_, i) => i);
+
+    const chartData = {
+        labels,
+        datasets: [
+            {
+                label: "Red",
+                data: data.red,
+                borderColor: "rgba(255, 0, 0, 0.8)",
+                backgroundColor: "rgba(255, 0, 0, 0.2)",
+                fill: true,
+                tension: 0.4,
+            },
+            {
+                label: "Green",
+                data: data.green,
+                borderColor: "rgba(0, 255, 0, 0.8)",
+                backgroundColor: "rgba(0, 255, 0, 0.2)",
+                fill: true,
+                tension: 0.4,
+            },
+            {
+                label: "Blue",
+                data: data.blue,
+                borderColor: "rgba(0, 0, 255, 0.8)",
+                backgroundColor: "rgba(0, 0, 255, 0.2)",
+                fill: true,
+                tension: 0.4,
+            },
+        ],
+    };
+
+    const options = {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                },
+                ticks: {
+                    color: "#888",
+                },
+            },
+            x: {
+                grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                },
+                ticks: {
+                    color: "#888",
+                    maxTicksLimit: 8,
+                },
+            },
+        },
+        plugins: {
+            legend: {
+                position: "top" as const,
+                labels: {
+                    color: "#888",
+                },
+            },
+            title: {
+                display: true,
+                text: "Color Distribution",
+                color: "#fff",
+            },
+        },
+    };
+
+    return (
+        <div className="histogram-container">
+            <Line data={chartData} options={options} />
+        </div>
+    );
+};
 
 function App() {
     const [imageUrl, setImageUrl] = useState<string>("");
@@ -13,18 +115,34 @@ function App() {
         /iPhone|iPad|Android/i.test(navigator.userAgent)
     );
 
-    const getCorsUrl = (url: string) => {
-        if (url.startsWith("data:") || url.startsWith("blob:")) {
-            return url;
+    const CORS_PROXIES = [
+        (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        (url: string) =>
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        (url: string) =>
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(
+                url
+            )}`,
+        (url: string) => url, // Try direct access as last resort
+    ];
+
+    const tryFetchImage = async (url: string): Promise<string> => {
+        for (const proxyFn of CORS_PROXIES) {
+            try {
+                const proxiedUrl = proxyFn(url);
+                // Test if the URL is accessible
+                const response = await fetch(proxiedUrl, { method: "HEAD" });
+                if (response.ok) {
+                    return proxiedUrl;
+                }
+            } catch (error) {
+                console.log(`Proxy failed, trying next one...`);
+            }
         }
-        // Try one of these proxies (uncomment one that works):
-        return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        // return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
-        // return `https://crossorigin.me/${url}`;
+        throw new Error("All proxies failed");
     };
 
     useEffect(() => {
-        // Prevent flicker by delaying the initial render slightly
         const timer = requestAnimationFrame(() => {
             setIsLoaded(true);
         });
@@ -34,8 +152,13 @@ function App() {
     const analyzeImage = async (url: string) => {
         setIsAnalyzing(true);
         try {
-            const processedUrl = getCorsUrl(url);
-            const detectionResults = await detectRed(processedUrl);
+            const accessibleUrl =
+                url.startsWith("data:") || url.startsWith("blob:")
+                    ? url
+                    : await tryFetchImage(url);
+
+            console.log("Using URL:", accessibleUrl);
+            const detectionResults = await detectRed(accessibleUrl);
             setResults(detectionResults);
         } catch (error) {
             console.error("Error analyzing image:", error);
@@ -72,12 +195,24 @@ function App() {
         }
     };
 
-    const handleUrlSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleUrlSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const url = formData.get("url") as string;
-        setImageUrl(url);
-        analyzeImage(url);
+
+        if (!url) {
+            alert("Please enter a valid URL");
+            return;
+        }
+
+        try {
+            new URL(url);
+            setImageUrl(url);
+            analyzeImage(url);
+        } catch (error) {
+            alert("Please enter a valid URL");
+            console.error("Invalid URL:", error);
+        }
     };
 
     return (
@@ -170,8 +305,20 @@ function App() {
 
                 {imageUrl && (
                     <div className="results-container">
-                        <div className="image-preview preview-animation">
-                            <img src={imageUrl} alt="Uploaded preview" />
+                        <div className="left-column">
+                            <div className="image-preview preview-animation">
+                                <img src={imageUrl} alt="Uploaded preview" />
+                            </div>
+                            {results.some((r) => r.histogramData) && (
+                                <div className="histogram-wrapper">
+                                    <HistogramDisplay
+                                        data={
+                                            results.find((r) => r.histogramData)
+                                                ?.histogramData
+                                        }
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="detection-results">
@@ -183,33 +330,75 @@ function App() {
                             ) : (
                                 <div className="results-list">
                                     <h2>Detection Results</h2>
-                                    {results.map((result, index) => (
-                                        <div
-                                            key={index}
-                                            className={`result-item ${
-                                                result.hasRed
-                                                    ? "has-red"
-                                                    : "no-red"
-                                            }`}
-                                        >
-                                            <h3>{result.method}</h3>
-                                            <p className="description">
-                                                {result.description}
-                                            </p>
-                                            <div className="confidence-bar">
-                                                <div
-                                                    className="confidence-fill"
-                                                    style={{
-                                                        width: `${result.confidence}%`,
-                                                    }}
-                                                />
+                                    {/* Show Final Verdict first */}
+                                    {results
+                                        .filter(
+                                            (r) => r.method === "Final Verdict"
+                                        )
+                                        .map((result, index) => (
+                                            <div
+                                                key={index}
+                                                className="result-item final-verdict"
+                                            >
+                                                <h3>{result.method}</h3>
+                                                <p className="description">
+                                                    {result.description}
+                                                </p>
+                                                <div className="confidence-bar">
+                                                    <div
+                                                        className="confidence-fill"
+                                                        style={{
+                                                            width: `${result.confidence}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <p className="confidence">
+                                                    Confidence:{" "}
+                                                    {result.confidence.toFixed(
+                                                        1
+                                                    )}
+                                                    %
+                                                </p>
                                             </div>
-                                            <p className="confidence">
-                                                Confidence:{" "}
-                                                {result.confidence.toFixed(1)}%
-                                            </p>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    {/* Show other results */}
+                                    {results
+                                        .filter(
+                                            (r) => r.method !== "Final Verdict"
+                                        )
+                                        .map((result, index) => (
+                                            <div
+                                                key={index}
+                                                className={`result-item ${
+                                                    result.method ===
+                                                    "Final Verdict"
+                                                        ? "final-verdict"
+                                                        : result.hasRed
+                                                        ? "has-red"
+                                                        : "no-red"
+                                                }`}
+                                            >
+                                                <h3>{result.method}</h3>
+                                                <p className="description">
+                                                    {result.description}
+                                                </p>
+                                                <div className="confidence-bar">
+                                                    <div
+                                                        className="confidence-fill"
+                                                        style={{
+                                                            width: `${result.confidence}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <p className="confidence">
+                                                    Confidence:{" "}
+                                                    {result.confidence.toFixed(
+                                                        1
+                                                    )}
+                                                    %
+                                                </p>
+                                            </div>
+                                        ))}
                                 </div>
                             )}
                         </div>

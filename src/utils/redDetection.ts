@@ -3,6 +3,13 @@ interface DetectionResult {
     hasRed: boolean;
     confidence: number;
     description: string;
+    histogramData?: HistogramData;
+}
+
+interface HistogramData {
+    red: number[];
+    green: number[];
+    blue: number[];
 }
 
 // Simple RGB threshold check
@@ -130,13 +137,75 @@ const dominantColorCheck = async (imageUrl: string): Promise<DetectionResult> =>
     });
 };
 
+// Histogram analysis method
+const histogramAnalysis = async (imageUrl: string): Promise<DetectionResult> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d')!;
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            const histogram: HistogramData = {
+                red: new Array(256).fill(0),
+                green: new Array(256).fill(0),
+                blue: new Array(256).fill(0)
+            };
+
+            // Build histogram for all channels
+            for (let i = 0; i < imageData.length; i += 4) {
+                histogram.red[imageData[i]]++;
+                histogram.green[imageData[i + 1]]++;
+                histogram.blue[imageData[i + 2]]++;
+            }
+
+            // Calculate red dominance
+            const totalPixels = imageData.length / 4;
+            const significantRed = histogram.red.slice(128).reduce((a, b) => a + b, 0);
+            const significantGreen = histogram.green.slice(128).reduce((a, b) => a + b, 0);
+            const significantBlue = histogram.blue.slice(128).reduce((a, b) => a + b, 0);
+
+            const redDominance = significantRed / (significantGreen + significantBlue + 1);
+            const confidence = Math.min(100, redDominance * 50);
+
+            resolve({
+                method: "Histogram Analysis",
+                hasRed: confidence > 25,
+                confidence: confidence,
+                description: "Analyzes the distribution of color values across the image",
+                histogramData: histogram
+            });
+        };
+        img.src = imageUrl;
+    });
+};
+
 export const detectRed = async (imageUrl: string): Promise<DetectionResult[]> => {
     try {
         const results = await Promise.all([
             simpleRGBCheck(imageUrl),
             hslCheck(imageUrl),
-            dominantColorCheck(imageUrl)
+            dominantColorCheck(imageUrl),
+            histogramAnalysis(imageUrl) // Add the new method to the analysis
         ]);
+
+        // Calculate final verdict
+        const positiveResults = results.filter(r => r.hasRed).length;
+        const averageConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+
+        results.unshift({
+            method: "Final Verdict",
+            hasRed: positiveResults >= 2, // If at least 2 methods detect red
+            confidence: averageConfidence,
+            description: positiveResults >= 2
+                ? `${positiveResults} out of 4 methods detected red with ${averageConfidence.toFixed(1)}% average confidence`
+                : "Not enough methods detected red to make a positive determination",
+        });
+
         return results;
     } catch (error) {
         console.error('Error detecting red:', error);
