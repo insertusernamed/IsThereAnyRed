@@ -1,14 +1,52 @@
 import { useState, useEffect } from "react";
+import { detectRed } from "./utils/redDetection";
 import "./App.css";
 
 function App() {
     const [imageUrl, setImageUrl] = useState<string>("");
     const [isDragging, setIsDragging] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [results, setResults] = useState<any[]>([]);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    const getCorsUrl = (url: string) => {
+        if (url.startsWith("data:") || url.startsWith("blob:")) {
+            return url;
+        }
+        // Try one of these proxies (uncomment one that works):
+        return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        // return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+        // return `https://crossorigin.me/${url}`;
+    };
 
     useEffect(() => {
-        setIsLoaded(true);
+        // Prevent flicker by delaying the initial render slightly
+        const timer = requestAnimationFrame(() => {
+            setIsLoaded(true);
+        });
+        return () => cancelAnimationFrame(timer);
     }, []);
+
+    const analyzeImage = async (url: string) => {
+        setIsAnalyzing(true);
+        try {
+            const processedUrl = getCorsUrl(url);
+            const detectionResults = await detectRed(processedUrl);
+            setResults(detectionResults);
+        } catch (error) {
+            console.error("Error analyzing image:", error);
+            setResults([
+                {
+                    method: "Error",
+                    hasRed: false,
+                    confidence: 0,
+                    description:
+                        "Failed to load image. Please try uploading the image directly instead of using a URL.",
+                },
+            ]);
+        }
+        setIsAnalyzing(false);
+    };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
@@ -17,6 +55,7 @@ function App() {
         if (file && file.type.startsWith("image/")) {
             const url = URL.createObjectURL(file);
             setImageUrl(url);
+            analyzeImage(url);
         }
     };
 
@@ -25,6 +64,7 @@ function App() {
         const formData = new FormData(e.currentTarget);
         const url = formData.get("url") as string;
         setImageUrl(url);
+        analyzeImage(url);
     };
 
     return (
@@ -100,8 +140,50 @@ function App() {
                 </form>
 
                 {imageUrl && (
-                    <div className="image-preview preview-animation">
-                        <img src={imageUrl} alt="Uploaded preview" />
+                    <div className="results-container">
+                        <div className="image-preview preview-animation">
+                            <img src={imageUrl} alt="Uploaded preview" />
+                        </div>
+
+                        <div className="detection-results">
+                            {isAnalyzing ? (
+                                <div className="analyzing">
+                                    <div className="spinner"></div>
+                                    <p>Analyzing image...</p>
+                                </div>
+                            ) : (
+                                <div className="results-list">
+                                    <h2>Detection Results</h2>
+                                    {results.map((result, index) => (
+                                        <div
+                                            key={index}
+                                            className={`result-item ${
+                                                result.hasRed
+                                                    ? "has-red"
+                                                    : "no-red"
+                                            }`}
+                                        >
+                                            <h3>{result.method}</h3>
+                                            <p className="description">
+                                                {result.description}
+                                            </p>
+                                            <div className="confidence-bar">
+                                                <div
+                                                    className="confidence-fill"
+                                                    style={{
+                                                        width: `${result.confidence}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                            <p className="confidence">
+                                                Confidence:{" "}
+                                                {result.confidence.toFixed(1)}%
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
